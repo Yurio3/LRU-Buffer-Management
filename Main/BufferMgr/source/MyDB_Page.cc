@@ -1,10 +1,10 @@
 #include "MyDB_Page.h"
 #include <unistd.h>
 
-MyDB_Page::MyDB_Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd)
+MyDB_Page::Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd)
     : table(table), pageNum(pageNum), data(data), pageSize(pageSize), fd(fd), dirty(false), pinCount(0) {}
 
-MyDB_Page::~MyDB_Page() {
+MyDB_Page::~Page() {
     if (dirty) {
         writeToDisk();
     }

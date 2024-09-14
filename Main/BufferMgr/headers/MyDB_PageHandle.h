@@ -4,7 +4,7 @@
 
 #include <memory>
 
-class MyDB_Page;
+class Page;
 
 // page handles are basically smart pointers
 using namespace std;
@@ -37,13 +37,13 @@ public:
 
 	// FEEL FREE TO ADD ADDITIONAL PUBLIC METHODS
 
-	MyDB_PageHandleBase(shared_ptr<MyDB_Page> page);
-    shared_ptr<MyDB_Page> getPage();
+	MyDB_PageHandleBase(shared_ptr<Page> page);
+    shared_ptr<Page> getPage();
 
 private:
 
 	// YOUR CODE HERE
-	shared_ptr<MyDB_Page> myPage;
+	shared_ptr<Page> myPage;
 };
 
 #endif

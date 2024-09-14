@@ -11,7 +11,7 @@
 
 using namespace std;
 
-class MyDB_Page;
+class Page;
 
 class MyDB_BufferManager {
 
@@ -63,15 +63,15 @@ private:
     string tempFile;
     char* bufferPool;
 
-    map<pair<MyDB_TablePtr, long>, shared_ptr<MyDB_Page>> pageTable;
-    list<shared_ptr<MyDB_Page>> lruList;
+    map<pair<MyDB_TablePtr, long>, shared_ptr<Page>> pageTable;
+    list<shared_ptr<Page>> lruList;
 
     int tempFileFD;
     long anonymousCounter;
 
-    shared_ptr<MyDB_Page> findOrCreatePage(MyDB_TablePtr whichTable, long i, bool isPinned);
+    shared_ptr<Page> findOrCreatePage(MyDB_TablePtr whichTable, long i, bool isPinned);
     void evictPage();
-    void addToLRU(shared_ptr<MyDB_Page> page);
+    void addToLRU(shared_ptr<Page> page);
 
 };
 

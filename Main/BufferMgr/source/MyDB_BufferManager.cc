@@ -34,7 +34,7 @@ MyDB_PageHandle MyDB_BufferManager :: getPinnedPage () {
 }
 
 void MyDB_BufferManager :: unpin (MyDB_PageHandle unpinMe) {
-	shared_ptr<MyDB_Page> page = static_pointer_cast<MyDB_PageHandleBase>(unpinMe)->getPage();
+	shared_ptr<Page> page = static_pointer_cast<MyDB_PageHandleBase>(unpinMe)->getPage();
     page->unpin();
     if (!page->isPinned()) {
         addToLRU(page);
@@ -75,7 +75,7 @@ MyDB_BufferManager :: ~MyDB_BufferManager () {
     delete[] bufferPool;
 }
 
-shared_ptr<MyDB_Page> MyDB_BufferManager::findOrCreatePage(MyDB_TablePtr whichTable, long i, bool isPinned) {
+shared_ptr<Page> MyDB_BufferManager::findOrCreatePage(MyDB_TablePtr whichTable, long i, bool isPinned) {
     auto key = make_pair(whichTable, i);
     auto it = pageTable.find(key);
 
@@ -93,7 +93,7 @@ shared_ptr<MyDB_Page> MyDB_BufferManager::findOrCreatePage(MyDB_TablePtr whichTa
     }
 
     char* pageData = bufferPool + (pageTable.size() * pageSize);
-    auto newPage = make_shared<MyDB_Page>(whichTable, i, pageData, pageSize, tempFileFD);
+    auto newPage = make_shared<Page>(whichTable, i, pageData, pageSize, tempFileFD);
     
     if (isPinned) {
         newPage->pin();
@@ -120,7 +120,7 @@ void MyDB_BufferManager::evictPage() {
     exit(1);
 }
 
-void MyDB_BufferManager::addToLRU(shared_ptr<MyDB_Page> page) {
+void MyDB_BufferManager::addToLRU(shared_ptr<Page> page) {
     lruList.remove(page);
     lruList.push_front(page);
 }

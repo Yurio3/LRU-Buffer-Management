@@ -23,10 +23,10 @@ MyDB_PageHandleBase :: ~MyDB_PageHandleBase () {
     }
 }
 
-MyDB_PageHandleBase :: MyDB_PageHandleBase(shared_ptr<MyDB_Page> page) : myPage(page) {
+MyDB_PageHandleBase :: MyDB_PageHandleBase(shared_ptr<Page> page) : myPage(page) {
 }
 
-shared_ptr<MyDB_Page> MyDB_PageHandleBase :: getPage() {
+shared_ptr<Page> MyDB_PageHandleBase :: getPage() {
     return myPage;
 }
 
