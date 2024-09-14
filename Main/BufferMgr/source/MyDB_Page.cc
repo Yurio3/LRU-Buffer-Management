@@ -1,53 +1,54 @@
 #include "MyDB_Page.h"
 #include <unistd.h>
 
-MyDB_Page::Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd)
-    : table(table), pageNum(pageNum), data(data), pageSize(pageSize), fd(fd), dirty(false), pinCount(0) {}
 
-MyDB_Page::~Page() {
+Page::Page(MyDB_TablePtr table, long pageNum, Node* node, size_t pageSize, int fd)
+    : table(table), pageNum(pageNum), node(node), pageSize(pageSize), fd(fd), dirty(false), pinCount(0) {}
+
+Page::~Page() {
     if (dirty) {
         writeToDisk();
     }
 }
 
-void* MyDB_Page::getBytes() {
-    return data;
+Node* Page::getBytes() {
+    return node;
 }
 
-void MyDB_Page::writeToDisk() {
+void Page::writeToDisk() {
     if (table) {
         lseek(fd, pageNum * pageSize, SEEK_SET);
-        write(fd, data, pageSize);
+        write(fd, node, pageSize);
     }
     dirty = false;
 }
 
-bool MyDB_Page::isDirty() const {
+bool Page::isDirty() const {
     return dirty;
 }
 
-void MyDB_Page::setDirty(bool dirty) {
+void Page::setDirty(bool dirty) {
     this->dirty = dirty;
 }
 
-bool MyDB_Page::isPinned() const {
+bool Page::isPinned() const {
     return pinCount > 0;
 }
 
-void MyDB_Page::pin() {
+void Page::pin() {
     pinCount++;
 }
 
-void MyDB_Page::unpin() {
+void Page::unpin() {
     if (pinCount > 0) {
         pinCount--;
     }
 }
 
-MyDB_TablePtr MyDB_Page::getTable() const {
+MyDB_TablePtr Page::getTable() const {
     return table;
 }
 
-long MyDB_Page::getPageNum() const {
+long Page::getPageNum() const {
     return pageNum;
 }
