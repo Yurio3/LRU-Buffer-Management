@@ -5,6 +5,12 @@ from os.path import isfile, join, abspath
 common_env = Environment()
 common_env.Append(CXXFLAGS = '-std=c++11 -Wall -g -O0')
 
+common_env.Append(CPPPATH = [
+    '/opt/rh/gcc-toolset-13/root/usr/include/c++/13',
+    '/opt/rh/gcc-toolset-13/root/usr/include/c++/13/x86_64-redhat-linux',
+    '/usr/include'
+])
+
 # get the source files for the catalog
 srcDir = '../Main/Catalog/source'
 catalogSrc = [abspath(join(srcDir, f)) for f in listdir(srcDir) if isfile(join(srcDir, f)) and f[-3:] == '.cc']
@@ -35,7 +41,7 @@ What do you want to build/clean?\n
 
 #ans=raw_input("Select the module(s) you want to build or clean. ")
 
-ans = "2"
+ans = "22"
 
 if ans=="1":
 	print("\nOK, building buffer unit tests.")
@@ -46,4 +52,12 @@ if ans=="2":
 	common_env.Replace(CXX = "clang++")
 	common_env.Program ('bin/bufferUnitTest', ['../Main/BufferTest/source/BufferQUnit.cc', catalogSrc, bufferSrc])
 
+if ans=="22":
+	print("\nOK, building buffer unit tests using clang++.")
+	common_env.Replace(CXX = "clang++")
+	common_env.Program ('bin/bufferUnitTest2', ['../Main/BufferTest/source/BufferQUnit2.cc', catalogSrc, bufferSrc])
 
+if ans=="3":
+	print("\nOK, building buffer unit tests using clang++.")
+	common_env.Replace(CXX = "clang++")
+	common_env.Program ('bin/recordQUnit', ['../Main/BufferTest/source/RecordQUnit.cc', catalogSrc, bufferSrc])
