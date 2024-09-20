@@ -5,12 +5,14 @@
 #include <memory>
 #include "MyDB_PageHandle.h"
 #include "MyDB_Page.h"
+#include <iostream>
 
 void* MyDB_PageHandleBase::getBytes() {
     return myPage->getBytes();
 }
 
 void MyDB_PageHandleBase::wroteBytes() {
+    cout << (myPage->isTemporary() ? "Temp" : "Regular") << " page " << myPage->getPageNum() << " marked dirty" << endl;
     myPage->setDirty(true);
 }
 

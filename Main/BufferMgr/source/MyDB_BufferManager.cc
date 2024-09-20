@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string>
 #include <memory>
+#include <iostream>
 
 using namespace std;
 
@@ -16,7 +17,9 @@ MyDB_PageHandle MyDB_BufferManager::getPage(MyDB_TablePtr whichTable, long i) {
 }
 
 MyDB_PageHandle MyDB_BufferManager::getPage() {
-    return getPage(nullptr, -1);  // Use nullptr for anonymous pages
+    cout << "Creating temporary page" << endl;
+    static long tempPageCounter = 0;
+    return make_shared<MyDB_PageHandleBase>(getPageInternal(nullptr, tempPageCounter++, false));
 }
 
 MyDB_PageHandle MyDB_BufferManager::getPinnedPage(MyDB_TablePtr whichTable, long i) {
@@ -61,15 +64,18 @@ shared_ptr<MyDB_Page> MyDB_BufferManager::getPageInternal(MyDB_TablePtr whichTab
         return page;
     }
 
-    if (bufferPool.empty()) {
-        evictPage();
+    char* data;
+    bool isTemp = (whichTable == nullptr);
+    
+    if (isTemp || bufferPool.empty()) {
+        data = new char[pageSize];
+    } else {
+        data = bufferPool.back();
+        bufferPool.pop_back();
     }
 
-    char* data = bufferPool.back();
-    bufferPool.pop_back();
-
     int fd = (whichTable == nullptr) ? tempFileFD : getTableFD(whichTable);
-    auto page = make_shared<MyDB_Page>(whichTable, i, data, pageSize, fd);
+    auto page = make_shared<MyDB_Page>(whichTable, i, data, pageSize, fd, isTemp);
     if (pinned) page->pin();
     pageMap[key] = page;
     lru.addPage(page);
@@ -83,10 +89,24 @@ shared_ptr<MyDB_Page> MyDB_BufferManager::getPageInternal(MyDB_TablePtr whichTab
 
 void MyDB_BufferManager::evictPage() {
     auto pageToEvict = lru.evict();
+    if (pageToEvict == nullptr) {
+        throw std::runtime_error("No page available for eviction");
+    }
+    
+    cout << "Evicting " << (pageToEvict->isTemporary() ? "temporary" : "regular") << " page " << pageToEvict->getPageNum() << endl;
+    
     if (pageToEvict->isDirty()) {
         pageToEvict->writeToDisk();
     }
-    bufferPool.push_back(static_cast<char*>(pageToEvict->getBytes()));
+    
+    if (!pageToEvict->isTemporary()) {
+        bufferPool.push_back(static_cast<char*>(pageToEvict->getBytes()));
+    } else {
+        // For temporary pages, we don't return the buffer to the pool
+        // Instead, we'll allocate a new buffer when needed
+        delete[] static_cast<char*>(pageToEvict->getBytes());
+    }
+    
     pageMap.erase(make_pair(pageToEvict->getTable(), pageToEvict->getPageNum()));
 }
 

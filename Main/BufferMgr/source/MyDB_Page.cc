@@ -3,24 +3,40 @@
 #include <unistd.h>
 #include <iostream>
 
-MyDB_Page::MyDB_Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd)
-    : table(table), pageNum(pageNum), data(data), pageSize(pageSize), fd(fd), dirty(false), pinCount(0) {}
+MyDB_Page::MyDB_Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd, bool isTemp)
+    : table(table), pageNum(pageNum), data(data), pageSize(pageSize), fd(fd), dirty(false), pinCount(0), isTemp(isTemp) {
+        if (isTemp) {
+            tempData.resize(pageSize);
+            std::memcpy(tempData.data(), data, pageSize);
+        }
+    }
 
 MyDB_Page::~MyDB_Page() {
     if (dirty) {
         writeToDisk();
     }
+    if (isTemp) {
+        // For temporary pages, we need to free the data buffer
+        // since it's not managed by the buffer pool
+        delete[] data;
+    }
+    // For non-temporary pages, we don't delete the data buffer here
+    // because it's managed by the MyDB_BufferManager
 }
 
 void* MyDB_Page::getBytes() {
-    return data;
+    cout << (isTemp ? "Temp" : "Regular") << " page " << pageNum << " accessed" << endl;
+    return isTemp ? tempData.data() : data;
 }
 
 void MyDB_Page::writeToDisk() {
-    if (table) {
+    if (!isTemp && table) {
         lseek(fd, pageNum * pageSize, SEEK_SET);
         write(fd, data, pageSize);
+    } else if (isTemp) {
+        std::memcpy(tempData.data(), data, pageSize);
     }
+    cout << (isTemp ? "Temp" : "Regular") << " page " << pageNum << " marked clean" << endl;
     dirty = false;
 }
 
@@ -59,4 +75,8 @@ void MyDB_Page::readFromDisk() {
         lseek(fd, pageNum * pageSize, SEEK_SET);
         read(fd, data, pageSize);
     }
+}
+
+bool MyDB_Page::isTemporary() const {
+    return isTemp;
 }

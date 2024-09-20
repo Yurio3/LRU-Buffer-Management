@@ -1,6 +1,9 @@
 // LRU.cc
 #include "LRU.h"
 #include "MyDB_Page.h"
+#include <stdexcept>
+#include <iostream>
+
 
 void LRU::addPage(std::shared_ptr<MyDB_Page> page) {
     lruList.push_front(page);
@@ -18,14 +21,18 @@ void LRU::touchPage(std::shared_ptr<MyDB_Page> page) {
 std::shared_ptr<MyDB_Page> LRU::evict() {
     while (!lruList.empty()) {
         auto page = lruList.back();
+        lruList.pop_back();
+        pageMap.erase(page);
+        
         if (!page->isPinned()) {
-            lruList.pop_back();
-            pageMap.erase(page);
+            cout << "LRU evicting " << (page->isTemporary() ? "temporary" : "regular") << " page " << page->getPageNum() << endl;
             return page;
         }
-        lruList.pop_back();
+        
+        // If the page is pinned, move it to the front
         lruList.push_front(page);
         pageMap[page] = lruList.begin();
     }
-    throw std::runtime_error("No unpinned pages available for eviction");
+    
+    return nullptr;
 }
