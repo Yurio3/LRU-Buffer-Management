@@ -1,54 +1,86 @@
+// MyDB_Page.cc
 #include "MyDB_Page.h"
 #include <unistd.h>
+#include <iostream>
+#include <cstring>
 
+MyDB_Page::MyDB_Page(MyDB_TablePtr table, long pageNum, char* data, size_t pageSize, int fd, bool isTemp)
+    : table(table), pageNum(pageNum), data(data), pageSize(pageSize), fd(fd), dirty(false), pinCount(0), isTemp(isTemp) {
+        if (isTemp) {
+            tempData.resize(pageSize);
+            std::memcpy(tempData.data(), data, pageSize);
+        }
+    }
 
-Page::Page(MyDB_TablePtr table, long pageNum, Node* node, size_t pageSize, int fd)
-    : table(table), pageNum(pageNum), node(node), pageSize(pageSize), fd(fd), dirty(false), pinCount(0) {}
-
-Page::~Page() {
+MyDB_Page::~MyDB_Page() {
     if (dirty) {
         writeToDisk();
     }
-}
-
-Node* Page::getBytes() {
-    return node;
-}
-
-void Page::writeToDisk() {
-    if (table) {
-        lseek(fd, pageNum * pageSize, SEEK_SET);
-        write(fd, node, pageSize);
+    if (isTemp) {
+        // For temporary pages, we need to free the data buffer
+        // since it's not managed by the buffer pool
+        delete[] data;
     }
+    // For non-temporary pages, we don't delete the data buffer here
+    // because it's managed by the MyDB_BufferManager
+}
+
+void* MyDB_Page::getBytes() {
+    //cout << (isTemp ? "Temp" : "Regular") << " page " << pageNum << " accessed" << endl;
+    return isTemp ? tempData.data() : data;
+}
+
+
+void MyDB_Page::writeToDisk() {
+     //cout << (isTemp ? "Temp" : "Regular") << " page " << pageNum 
+        // << (isTemp ? " storing data" : " writing to disk") << endl;
+    if (isTemp) {
+        std::memcpy(tempData.data(), data, pageSize);
+    } else if (table) {
+        lseek(fd, pageNum * pageSize, SEEK_SET);
+        write(fd, data, pageSize);
+    }
+    //cout << (isTemp ? "Temp" : "Regular") << " page " << pageNum << " marked clean" << endl;
     dirty = false;
 }
 
-bool Page::isDirty() const {
+bool MyDB_Page::isDirty() const {
     return dirty;
 }
 
-void Page::setDirty(bool dirty) {
+void MyDB_Page::setDirty(bool dirty) {
     this->dirty = dirty;
 }
 
-bool Page::isPinned() const {
+bool MyDB_Page::isPinned() const {
     return pinCount > 0;
 }
 
-void Page::pin() {
+void MyDB_Page::pin() {
     pinCount++;
 }
 
-void Page::unpin() {
+void MyDB_Page::unpin() {
     if (pinCount > 0) {
         pinCount--;
     }
 }
 
-MyDB_TablePtr Page::getTable() const {
+MyDB_TablePtr MyDB_Page::getTable() const {
     return table;
 }
 
-long Page::getPageNum() const {
+long MyDB_Page::getPageNum() const {
     return pageNum;
+}
+
+void MyDB_Page::readFromDisk() {
+    if (table) {
+        lseek(fd, pageNum * pageSize, SEEK_SET);
+        read(fd, data, pageSize);
+    }
+}
+
+bool MyDB_Page::isTemporary() const {
+    return isTemp;
 }

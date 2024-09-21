@@ -4,14 +4,14 @@
 
 #include "MyDB_PageHandle.h"
 #include "MyDB_Table.h"
-#include <map>
-#include <list>
-#include <memory>
+#include "MyDB_Page.h"
+#include "LRU.h"
+#include <unordered_map>
+#include <vector>
 #include <string>
+#include <functional> 
 
 using namespace std;
-
-class Page;
 
 class MyDB_BufferManager {
 
@@ -46,7 +46,7 @@ public:
 	// 1) the size of each page is pageSize 
 	// 2) the number of pages managed by the buffer manager is numPages;
 	// 3) temporary pages are written to the file tempFile
-	MyDB_BufferManager (size_t pageSize, size_t numPages, string tempFile);
+	MyDB_BufferManager (size_t pageSize, size_t numPages, std::string tempFile);
 	
 	// when the buffer manager is destroyed, all of the dirty pages need to be
 	// written back to disk, any necessary data needs to be written to the catalog,
@@ -60,18 +60,27 @@ private:
 	// YOUR STUFF HERE
 	size_t pageSize;
     size_t numPages;
-    string tempFile;
-    char* bufferPool;
+    std::string tempFile;
+    LRU lru;
 
-    map<pair<MyDB_TablePtr, long>, shared_ptr<Page>> pageTable;
-    list<shared_ptr<Page>> lruList;
+	// Define the pair_hash struct
+    struct pair_hash {
+        template <class T1, class T2>
+        std::size_t operator () (const std::pair<T1,T2> &p) const {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            return h1 ^ h2;
+        }
+    };
 
+
+    std::unordered_map<std::pair<MyDB_TablePtr, long>, std::shared_ptr<MyDB_Page>, pair_hash> pageMap;
+    std::vector<char*> bufferPool;
     int tempFileFD;
-    long anonymousCounter;
 
-    shared_ptr<Page> findOrCreatePage(MyDB_TablePtr whichTable, long i, bool isPinned);
+    std::shared_ptr<MyDB_Page> getPageInternal(MyDB_TablePtr whichTable, long i, bool pinned);
     void evictPage();
-    void addToLRU(shared_ptr<Page> page);
+    int getTableFD(MyDB_TablePtr whichTable);
 
 };
 
